@@ -6,28 +6,84 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"math"
 	"os"
+
+	"github.com/Eleron8/filestackTestApi/models"
 )
 
-func OpenImage(jpg string) (image.Image, error) {
-	file, err := os.Open(jpg)
+type ImageProcess struct {
+	ImageFile  image.Image
+	Transforms []models.Transform
+}
+
+// type Action struct {
+// 	Degrees float64
+// 	Width   int
+// 	Height  int
+// }
+
+func OpenImage(filename string, transforms []models.Transform) (ImageProcess, error) {
+	handleErr := func(err error) (ImageProcess, error) {
+		return ImageProcess{}, nil
+	}
+	file, err := os.Open(filename)
 	if err != nil {
-		return nil, err
+		return handleErr(err)
 	}
 	defer file.Close()
 	img, format, err := image.Decode(file)
 	if err != nil {
-		return nil, err
+		return handleErr(err)
 	}
-	if format != "jpeg" {
-		return nil, errors.New("image format is not jpeg")
+	if format != "jpeg" && format != "png" {
+		return handleErr(errors.New("image format is not correct"))
 	}
-	return img, nil
+	imgProcess := ImageProcess{
+		ImageFile:  img,
+		Transforms: transforms,
+	}
+	return imgProcess, nil
 }
 
-func RotateByAngle(angle float64, pixels *[][]color.Color, radius int) {
-	ppixels := *pixels
+func (imgPr ImageProcess) ImageTransform(format string, name string) error {
+	_, radius := imgPr.GetPixels()
+	for k, v := range imgPr.Transforms {
+		switch v.Type {
+		case models.Rotate:
+			size := imgPr.ImageFile.Bounds().Size()
+			newimage := imgPr.rotateByAngle(v.Params.Degrees, size, radius)
+			filename := fmt.Sprintf("%s_%s_%d", name, models.Rotate, k)
+			if err := imgPr.createImageRGBA(newimage, filename); err != nil {
+				return err
+			}
+		case models.Crop:
+			rect := image.Rect(0, 0, v.Params.Width, v.Params.Height)
+			newImg, err := imgPr.cropImage(imgPr.ImageFile, rect)
+			if err != nil {
+				return err
+			}
+			filename := fmt.Sprintf("%s_%s_%d", name, models.Crop, k)
+			if err := imgPr.createImage(newImg, filename, format); err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+func (imgPr ImageProcess) rotateByAngle(angle float64, size image.Point, radius int) *image.RGBA {
+	var pixels [][]color.Color
+	for i := 0; i < size.X; i++ {
+		var y []color.Color
+		for j := 0; j < size.Y; j++ {
+			y = append(y, imgPr.ImageFile.At(i, j))
+		}
+		pixels = append(pixels, y)
+	}
+
 	cos := math.Cos(angle)
 	sin := math.Sin(angle)
 
@@ -40,18 +96,37 @@ func RotateByAngle(angle float64, pixels *[][]color.Color, radius int) {
 
 	fmt.Println("x:", len(newImage), "y:", len(newImage[0]), "radius:", radius)
 
-	for i := 0; i < len(ppixels); i++ {
-		for j := 0; j < len(ppixels[i]); j++ {
+	for i := 0; i < len(pixels); i++ {
+		for j := 0; j < len(pixels[i]); j++ {
 			xNew := int(float64(i)*cos-float64(j)*sin) + radius
 			yNew := int(float64(i)*sin+float64(j)*cos) + radius
 
-			newImage[xNew][yNew] = ppixels[i][j]
+			newImage[xNew][yNew] = pixels[i][j]
 		}
 	}
-	*pixels = newImage
+	rect := image.Rect(0, 0, len(newImage), len(newImage[0]))
+	nImg := image.NewRGBA(rect)
+
+	for x := 0; x < len(newImage); x++ {
+		for y := 0; y < len(newImage[0]); y++ {
+			q := newImage[x]
+			if q == nil {
+				continue
+			}
+			p := newImage[x][y]
+			if p == nil {
+				continue
+			}
+			original, ok := color.RGBAModel.Convert(p).(color.RGBA)
+			if ok {
+				nImg.Set(x, y, original)
+			}
+		}
+	}
+	return nImg
 }
 
-func CropImage(img image.Image, rect image.Rectangle) (image.Image, error) {
+func (i ImageProcess) cropImage(img image.Image, rect image.Rectangle) (image.Image, error) {
 	type subImager interface {
 		SubImage(r image.Rectangle) image.Image
 	}
@@ -62,7 +137,7 @@ func CropImage(img image.Image, rect image.Rectangle) (image.Image, error) {
 	return crop.SubImage(rect), nil
 }
 
-func createImage(newImage *image.RGBA, name string) error {
+func (imgPr ImageProcess) createImageRGBA(newImage *image.RGBA, name string) error {
 	fg, err := os.Create(name)
 	if err != nil {
 		return err
@@ -73,4 +148,40 @@ func createImage(newImage *image.RGBA, name string) error {
 		return err
 	}
 	return nil
+}
+
+func (imgPr ImageProcess) createImage(newImage image.Image, name string, format string) error {
+	fg, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer fg.Close()
+	if format == "jpeg" {
+		err := jpeg.Encode(fg, newImage, nil)
+		if err != nil {
+			return err
+		}
+	}
+	if format == "png" {
+		err := png.Encode(fg, newImage)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (imgPr ImageProcess) GetPixels() ([][]color.Color, int) {
+	size := imgPr.ImageFile.Bounds().Size()
+	var pixels [][]color.Color
+	for i := 0; i < size.X; i++ {
+		var y []color.Color
+		for j := 0; j < size.Y; j++ {
+
+			y = append(y, imgPr.ImageFile.At(i, j))
+		}
+		pixels = append(pixels, y)
+	}
+	radius := int(math.Sqrt(float64(size.X*size.X) + float64(size.Y*size.Y)))
+	return pixels, radius
 }

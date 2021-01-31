@@ -27,28 +27,31 @@ func NewFileHandler(client *http.Client) FileHandler {
 	}
 }
 
-func (f FileHandler) GetFile(fileUrl string) (int64, error) {
+func (f FileHandler) GetFile(fileUrl string) (int64, string, error) {
+	handleErr := func(err error) (int64, string, error) {
+		return 0, "", fmt.Errorf("get file error: %w", err)
+	}
 	resp, err := f.client.Get(fileUrl)
 	if err != nil {
-		return 0, err
+		handleErr(err)
 	}
 	defer resp.Body.Close()
 	filename, err := f.getfilename(fileUrl)
 	if err != nil {
-		return 0, err
+		handleErr(err)
 	}
 	file, err := f.createFile(filename)
 	if err != nil {
-		return 0, err
+		handleErr(err)
 	}
 	if len(filename) == 0 {
-		return 0, fmt.Errorf("file name not found. Lenght: %d", len(filename))
+		return 0, "", fmt.Errorf("file name not found. Lenght: %d", len(filename))
 	}
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		return 0, err
+		handleErr(err)
 	}
-	return size, nil
+	return size, file.Name(), nil
 }
 
 func (f FileHandler) getfilename(fileUrl string) (string, error) {
@@ -63,10 +66,9 @@ func (f FileHandler) getfilename(fileUrl string) (string, error) {
 	for _, v := range splits {
 		if contain := strings.Contains(v, ".png"); contain {
 			filename = v
-		} else if contain := strings.Contains(v, ".jpg"); contain {
+		}
+		if contain := strings.Contains(v, ".jpg"); contain {
 			filename = v
-		} else {
-			return "", fmt.Errorf("URL doesn't have image file. Must contain png or jpg")
 		}
 
 	}
