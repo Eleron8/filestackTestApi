@@ -21,7 +21,7 @@ const (
 )
 
 type Param struct {
-	Degrees float64
-	Width   int
-	Height  int
+	Degrees float64 `json:"degrees"`
+	Width   int     `json:"width"`
+	Height  int     `json:"height"`
 }

@@ -8,14 +8,17 @@ import (
 	"image/jpeg"
 	"image/png"
 	"math"
+	"math/rand"
 	"os"
 
 	"github.com/Eleron8/filestackTestApi/models"
+	"go.uber.org/zap"
 )
 
 type ImageProcess struct {
 	ImageFile  image.Image
 	Transforms []models.Transform
+	logger     *zap.Logger
 }
 
 // type Action struct {
@@ -24,9 +27,9 @@ type ImageProcess struct {
 // 	Height  int
 // }
 
-func OpenImage(filename string, transforms []models.Transform) (ImageProcess, error) {
-	handleErr := func(err error) (ImageProcess, error) {
-		return ImageProcess{}, nil
+func OpenImage(filename string, transforms []models.Transform, logger *zap.Logger) (ImageProcess, string, error) {
+	handleErr := func(err error) (ImageProcess, string, error) {
+		return ImageProcess{}, "", nil
 	}
 	file, err := os.Open(filename)
 	if err != nil {
@@ -43,19 +46,57 @@ func OpenImage(filename string, transforms []models.Transform) (ImageProcess, er
 	imgProcess := ImageProcess{
 		ImageFile:  img,
 		Transforms: transforms,
+		logger:     logger,
 	}
-	return imgProcess, nil
+	return imgProcess, format, nil
 }
 
-func (imgPr ImageProcess) ImageTransform(format string, name string) error {
+func (imgPr ImageProcess) ImageTransform(param models.Transform, format string, name string, radius int, formatPart string) (string, error) {
+	switch param.Type {
+	case models.Rotate:
+		size := imgPr.ImageFile.Bounds().Size()
+		newimage := imgPr.rotateByAngle(param.Params.Degrees, size, radius)
+		filename := fmt.Sprintf("%s_%s_%f", name, models.Rotate, param.Params.Degrees)
+		filename = filename + formatPart
+		imgPr.logger.Info("in rotate case ", zap.String("filename", filename))
+		if err := imgPr.createImageRGBA(newimage, filename, format); err != nil {
+			return "", err
+		}
+		return filename, nil
+	case models.Crop:
+		rect := image.Rect(0, 0, param.Params.Width, param.Params.Height)
+		newImg, err := imgPr.cropImage(imgPr.ImageFile, rect)
+		if err != nil {
+			return "", err
+		}
+		filename := fmt.Sprintf("%s_%s_%d_%d", name, models.Crop, param.Params.Width, param.Params.Height)
+		filename = filename + formatPart
+		imgPr.logger.Info("in crop case ", zap.String("filename", filename))
+		if err := imgPr.createImage(newImg, filename, format); err != nil {
+			return "", err
+		}
+		return filename, nil
+	case models.RemoveExif:
+		filename := fmt.Sprintf("%s_%s_%d", name, models.RemoveExif, rand.Intn(100))
+		filename = filename + formatPart
+		imgPr.logger.Info("in remove exif case ", zap.String("filename", filename))
+		if err := imgPr.createImage(imgPr.ImageFile, filename, format); err != nil {
+			return "", err
+		}
+		return filename, nil
+	}
+	return "", nil
+}
+
+func (imgPr ImageProcess) ImageTransforms(format string, name string) error {
 	_, radius := imgPr.GetPixels()
-	for k, v := range imgPr.Transforms {
+	for _, v := range imgPr.Transforms {
 		switch v.Type {
 		case models.Rotate:
 			size := imgPr.ImageFile.Bounds().Size()
 			newimage := imgPr.rotateByAngle(v.Params.Degrees, size, radius)
-			filename := fmt.Sprintf("%s_%s_%d", name, models.Rotate, k)
-			if err := imgPr.createImageRGBA(newimage, filename); err != nil {
+			filename := fmt.Sprintf("%s_%s_%f", name, models.Rotate, v.Params.Degrees)
+			if err := imgPr.createImageRGBA(newimage, filename, format); err != nil {
 				return err
 			}
 		case models.Crop:
@@ -64,7 +105,7 @@ func (imgPr ImageProcess) ImageTransform(format string, name string) error {
 			if err != nil {
 				return err
 			}
-			filename := fmt.Sprintf("%s_%s_%d", name, models.Crop, k)
+			filename := fmt.Sprintf("%s_%s_%d_%d", name, models.Crop, v.Params.Width, v.Params.Height)
 			if err := imgPr.createImage(newImg, filename, format); err != nil {
 				return err
 			}
@@ -137,15 +178,23 @@ func (i ImageProcess) cropImage(img image.Image, rect image.Rectangle) (image.Im
 	return crop.SubImage(rect), nil
 }
 
-func (imgPr ImageProcess) createImageRGBA(newImage *image.RGBA, name string) error {
+func (imgPr ImageProcess) createImageRGBA(newImage *image.RGBA, name string, format string) error {
 	fg, err := os.Create(name)
 	if err != nil {
 		return err
 	}
 	defer fg.Close()
-	err = jpeg.Encode(fg, newImage, nil)
-	if err != nil {
-		return err
+	if format == "jpeg" {
+		err := jpeg.Encode(fg, newImage, nil)
+		if err != nil {
+			return err
+		}
+	}
+	if format == "png" {
+		err := png.Encode(fg, newImage)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

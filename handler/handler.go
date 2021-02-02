@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/Eleron8/filestackTestApi/models"
 	"github.com/labstack/echo/v4"
@@ -32,5 +33,5 @@ func (h Handler) Accept(ctx echo.Context) error {
 	if err := h.Usecase.FileFlow(req); err != nil {
 		handleErr(err)
 	}
-	return nil
+	return ctx.NoContent(http.StatusOK)
 }
