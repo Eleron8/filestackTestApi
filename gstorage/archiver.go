@@ -42,5 +42,8 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 		return err
 	}
 	_, err = io.Copy(writer, fileToZip)
+	if err != nil {
+		return err
+	}
 	return err
 }
