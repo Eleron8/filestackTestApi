@@ -39,9 +39,9 @@ func NewUsecase(fileget FileGet, storage Storage, folderName string, maxgoroutin
 	}
 }
 
-func (u *Usecase) FileFlow(data models.TransformData) error {
-	handleErr := func(err error) error {
-		return fmt.Errorf("file flow file's url %s: %w", data.FileURL, err)
+func (u *Usecase) FileFlow(data models.TransformData) (io.Reader, error) {
+	handleErr := func(err error) (io.Reader, error) {
+		return nil, fmt.Errorf("file flow file's url %s: %w", data.FileURL, err)
 	}
 	var wg = sync.WaitGroup{}
 	_, file, err := u.FileGet.GetFile(data.FileURL)
@@ -59,13 +59,13 @@ func (u *Usecase) FileFlow(data models.TransformData) error {
 	names := reg.Split(file, 2)
 	filename := fmt.Sprintf("%s/%s", u.FolderName, names[0])
 	guard := make(chan struct{}, u.MaxGoroutines)
-	wc := u.Storage.GetWriter()
+	rc, wc := io.Pipe()
 	zipWriter := zip.NewWriter(wc)
 	defer zipWriter.Close()
 	for _, v := range data.Transforms {
 		guard <- struct{}{}
 		wg.Add(1)
-		go func(d models.Transform, zipwriter *zip.Writer) error {
+		go func(d models.Transform, zipwriter *zip.Writer) (io.Reader, error) {
 			name, err := imgProc.ImageTransform(d, format, filename, radius, formatPart)
 			if err != nil {
 				return handleErr(err)
@@ -75,7 +75,7 @@ func (u *Usecase) FileFlow(data models.TransformData) error {
 			}
 			<-guard
 			wg.Done()
-			return nil
+			return nil, nil
 		}(v, zipWriter)
 	}
 
@@ -89,5 +89,5 @@ func (u *Usecase) FileFlow(data models.TransformData) error {
 	// 	return handleErr(err)
 	// }
 
-	return nil
+	return rc, nil
 }

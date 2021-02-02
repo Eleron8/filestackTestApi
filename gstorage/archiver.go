@@ -23,7 +23,6 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 	}
 	defer fileToZip.Close()
 
-	// Get the file information
 	info, err := fileToZip.Stat()
 	if err != nil {
 		return err
