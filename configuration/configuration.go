@@ -1,8 +1,6 @@
 package configuration
 
 import (
-	"os"
-
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -51,8 +49,5 @@ func init() {
 	if err != nil {
 		Logger.Fatal("unable to decode config in struct", zap.Error(err))
 	}
-	err = os.Mkdir(Config.FolderName, 0755)
-	if err != nil {
-		Logger.Fatal("unable to create directroy", zap.Error(err))
-	}
+
 }
