@@ -6,6 +6,7 @@ import (
 
 	"github.com/Eleron8/filestackTestApi/models"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 type UsecaseInter interface {
@@ -14,9 +15,10 @@ type UsecaseInter interface {
 
 type Handler struct {
 	Usecase UsecaseInter
+	logger  *zap.Logger
 }
 
-func NewHandler(usecase UsecaseInter) Handler {
+func NewHandler(usecase UsecaseInter, logger *zap.Logger) Handler {
 	return Handler{
 		Usecase: usecase,
 	}
@@ -28,9 +30,11 @@ func (h Handler) Accept(ctx echo.Context) error {
 	}
 	var req models.TransformData
 	if err := ctx.Bind(&req); err != nil {
+		h.logger.Info("can't bind body", zap.Error(err))
 		handleErr(err)
 	}
 	if err := h.Usecase.FileFlow(req); err != nil {
+		h.logger.Info("image transformation flow failed", zap.Error(err))
 		handleErr(err)
 	}
 	return ctx.NoContent(http.StatusOK)

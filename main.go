@@ -27,7 +27,7 @@ func main() {
 		configuration.Logger.Fatal("can't connect to GCS", zap.Error(err))
 	}
 	useCase := usecase.NewUsecase(fHandl, gStorage, configuration.Config.FolderName, configuration.Config.MaxGoroutines, configuration.Logger)
-	routeHandler := handler.NewHandler(useCase)
+	routeHandler := handler.NewHandler(useCase, configuration.Logger)
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
