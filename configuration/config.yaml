@@ -3,3 +3,4 @@ maxGoroutines: 3
 folderName: "createdImages"
 projectID: "filestackapi"
 bucketName: "filestack_bucket_1"
+jsonPath: "/home/eleron/goProjects/filestackTestApi/filestackApi-f87d7b3ddbb3.json"

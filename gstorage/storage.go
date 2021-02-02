@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
 type StorageData struct {
@@ -14,8 +15,8 @@ type StorageData struct {
 	StorageClient *storage.Client
 }
 
-func NewStorageData(ctx context.Context, projectId, bucketname string) (*StorageData, error) {
-	storageclient, err := storage.NewClient(ctx)
+func NewStorageData(ctx context.Context, projectId, bucketname, jsonPath string) (*StorageData, error) {
+	storageclient, err := storage.NewClient(ctx, option.WithCredentialsFile(jsonPath))
 	if err != nil {
 		return nil, err
 	}

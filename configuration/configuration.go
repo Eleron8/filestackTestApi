@@ -17,6 +17,7 @@ type Cfg struct {
 	FolderName    string
 	ProjectID     string
 	BucketName    string
+	JsonPath      string
 }
 
 func init() {

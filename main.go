@@ -22,7 +22,7 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
-	gStorage, err := gstorage.NewStorageData(ctx, configuration.Config.ProjectID, configuration.Config.BucketName)
+	gStorage, err := gstorage.NewStorageData(ctx, configuration.Config.ProjectID, configuration.Config.BucketName, configuration.Config.JsonPath)
 	if err != nil {
 		configuration.Logger.Fatal("can't connect to GCS", zap.Error(err))
 	}
