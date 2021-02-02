@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 // var httpClient *http.Client
@@ -19,11 +21,13 @@ import (
 
 type FileHandler struct {
 	client *http.Client
+	logger *zap.Logger
 }
 
-func NewFileHandler(client *http.Client) FileHandler {
+func NewFileHandler(client *http.Client, logger *zap.Logger) FileHandler {
 	return FileHandler{
 		client: client,
+		logger: logger,
 	}
 }
 
@@ -72,7 +76,7 @@ func (f FileHandler) getfilename(fileUrl string) (string, error) {
 		}
 
 	}
-	// filename := splits[len(splits)-1]
+	f.logger.Info("created file", zap.String("filename", filename))
 	return filename, nil
 }
 

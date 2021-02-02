@@ -46,6 +46,7 @@ func (u *Usecase) FileFlow(data models.TransformData) error {
 	var wg = sync.WaitGroup{}
 	_, file, err := u.FileGet.GetFile(data.FileURL)
 	if err != nil {
+		u.logger.Info("get file failed", zap.Error(err))
 		return handleErr(err)
 	}
 	imgProc, format, err := imageprocess.OpenImage(file, data.Transforms, u.logger)

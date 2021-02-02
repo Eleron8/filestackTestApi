@@ -18,7 +18,7 @@ func main() {
 	httpClient := &http.Client{
 		Timeout: time.Second * 10,
 	}
-	fHandl := getfile.NewFileHandler(httpClient)
+	fHandl := getfile.NewFileHandler(httpClient, configuration.Logger)
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()

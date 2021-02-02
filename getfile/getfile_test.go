@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestGetFile(t *testing.T) {
@@ -14,7 +16,26 @@ func TestGetFile(t *testing.T) {
 	httpClient := &http.Client{
 		Timeout: time.Second * 10,
 	}
-	f := NewFileHandler(httpClient)
+	loggerCfg := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}
+	logger, _ := loggerCfg.Build()
+	f := NewFileHandler(httpClient, logger)
 	size1, filename1, err := f.GetFile(imageUrl1)
 	fmt.Printf("size of file: %d", size1)
 	assert.Equal(t, nil, err, "get file error")
