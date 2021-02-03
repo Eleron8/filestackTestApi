@@ -7,11 +7,11 @@ import (
 
 	"github.com/Eleron8/filestackTestApi/configuration"
 	"github.com/Eleron8/filestackTestApi/getfile"
-	"github.com/Eleron8/filestackTestApi/gstorage"
+
+	// "github.com/Eleron8/filestackTestApi/gstorage"
 	"github.com/Eleron8/filestackTestApi/handler"
 	"github.com/Eleron8/filestackTestApi/usecase"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -22,11 +22,11 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
-	gStorage, err := gstorage.NewStorageData(ctx, configuration.Config.ProjectID, configuration.Config.BucketName, configuration.Config.JsonPath)
-	if err != nil {
-		configuration.Logger.Fatal("can't connect to GCS", zap.Error(err))
-	}
-	useCase := usecase.NewUsecase(fHandl, gStorage, configuration.Config.FolderName, configuration.Config.MaxGoroutines, configuration.Logger)
+	// gStorage, err := gstorage.NewStorageData(ctx, configuration.Config.ProjectID, configuration.Config.BucketName)
+	// if err != nil {
+	// 	configuration.Logger.Fatal("can't connect to GCS", zap.Error(err))
+	// }
+	useCase := usecase.NewUsecase(fHandl, configuration.Config.FolderName, configuration.Config.MaxGoroutines, configuration.Logger)
 	routeHandler := handler.NewHandler(useCase, configuration.Logger)
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {

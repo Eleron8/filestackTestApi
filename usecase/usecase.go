@@ -18,28 +18,28 @@ type FileGet interface {
 	GetFile(fileUrl string) (int64, string, error)
 }
 
-type Storage interface {
-	GetWriter() io.Writer
-}
+// type Storage interface {
+// 	GetWriter() io.Writer
+// }
 type Usecase struct {
-	FileGet       FileGet
-	Storage       Storage
+	FileGet FileGet
+	// Storage       Storage
 	logger        *zap.Logger
 	FolderName    string
 	MaxGoroutines int
 }
 
-func NewUsecase(fileget FileGet, storage Storage, folderName string, maxgoroutines int, logger *zap.Logger) *Usecase {
+func NewUsecase(fileget FileGet, folderName string, maxgoroutines int, logger *zap.Logger) *Usecase {
 	return &Usecase{
-		FileGet:       fileget,
-		Storage:       storage,
+		FileGet: fileget,
+		// Storage:       storage,
 		FolderName:    folderName,
 		MaxGoroutines: maxgoroutines,
 		logger:        logger,
 	}
 }
 
-func (u *Usecase) FileFlow(data models.TransformData) error {
+func (u *Usecase) FileFlow(data models.TransformData, wr io.Writer) error {
 	handleErr := func(err error) error {
 		return fmt.Errorf("file flow file's url %s: %w", data.FileURL, err)
 	}
@@ -59,35 +59,51 @@ func (u *Usecase) FileFlow(data models.TransformData) error {
 	names := reg.Split(file, 2)
 	filename := fmt.Sprintf("%s/%s", u.FolderName, names[0])
 	guard := make(chan struct{}, u.MaxGoroutines)
-	wc := u.Storage.GetWriter()
-	zipWriter := zip.NewWriter(wc)
+	errChan1 := make(chan error)
+	errChan2 := make(chan error)
+
+	zipWriter := zip.NewWriter(wr)
 	defer zipWriter.Close()
 	for _, v := range data.Transforms {
 		guard <- struct{}{}
 		wg.Add(1)
-		go func(d models.Transform, zipwriter *zip.Writer) error {
+		go func(d models.Transform) {
+			defer func() {
+				wg.Done()
+			}()
 			name, err := imgProc.ImageTransform(d, format, filename, radius, formatPart)
 			if err != nil {
-				return handleErr(err)
+
+				errChan1 <- err
+				return
 			}
-			if err := gstorage.AddFileToZip(zipwriter, "createdImages/"+name); err != nil {
-				return handleErr(err)
+
+			u.logger.Info("add to zip file starts", zap.String("filename", name))
+			if err := gstorage.AddFileToZip(zipWriter, name); err != nil {
+				u.logger.Info("add file to zip Failed", zap.String("filename", name), zap.Error(err))
+				errChan1 <- err
+
+				return
 			}
 			<-guard
-			wg.Done()
-			return nil
-		}(v, zipWriter)
+			u.logger.Info("image transform", zap.String("filename", name))
+
+		}(v)
+
+	}
+	wg.Wait()
+
+	select {
+	case err := <-errChan1:
+		return handleErr(err)
+	case err := <-errChan2:
+		return handleErr(err)
+	default:
+		if err := gstorage.RemoveContents("createdImages"); err != nil {
+			return handleErr(err)
+		}
+		return nil
+
 	}
 
-	// for _, v := range data.Transforms {
-	// 	if err := imgProc.ImageTransform(v, format, filename, radius, formatPart); err != nil {
-	// 		return handleErr(err)
-	// 	}
-	// }
-
-	// if err := imgProc.ImageTransforms(format, filename); err != nil {
-	// 	return handleErr(err)
-	// }
-
-	return nil
 }
