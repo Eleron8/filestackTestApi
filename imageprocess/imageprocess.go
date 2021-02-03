@@ -21,12 +21,6 @@ type ImageProcess struct {
 	logger     *zap.Logger
 }
 
-// type Action struct {
-// 	Degrees float64
-// 	Width   int
-// 	Height  int
-// }
-
 func OpenImage(filename string, transforms []models.Transform, logger *zap.Logger) (ImageProcess, string, error) {
 	handleErr := func(err error) (ImageProcess, string, error) {
 		return ImageProcess{}, "", nil
@@ -86,33 +80,6 @@ func (imgPr ImageProcess) ImageTransform(param models.Transform, format string, 
 		return filename, nil
 	}
 	return "", nil
-}
-
-func (imgPr ImageProcess) ImageTransforms(format string, name string) error {
-	_, radius := imgPr.GetPixels()
-	for _, v := range imgPr.Transforms {
-		switch v.Type {
-		case models.Rotate:
-			size := imgPr.ImageFile.Bounds().Size()
-			newimage := imgPr.rotateByAngle(v.Params.Degrees, size, radius)
-			filename := fmt.Sprintf("%s_%s_%f", name, models.Rotate, v.Params.Degrees)
-			if err := imgPr.createImageRGBA(newimage, filename, format); err != nil {
-				return err
-			}
-		case models.Crop:
-			rect := image.Rect(0, 0, v.Params.Width, v.Params.Height)
-			newImg, err := imgPr.cropImage(imgPr.ImageFile, rect)
-			if err != nil {
-				return err
-			}
-			filename := fmt.Sprintf("%s_%s_%d_%d", name, models.Crop, v.Params.Width, v.Params.Height)
-			if err := imgPr.createImage(newImg, filename, format); err != nil {
-				return err
-			}
-		}
-
-	}
-	return nil
 }
 
 func (imgPr ImageProcess) rotateByAngle(angle float64, size image.Point, radius int) *image.RGBA {
