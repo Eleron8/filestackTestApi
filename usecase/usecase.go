@@ -99,24 +99,11 @@ func (u *Usecase) FileFlow(data models.TransformData, wr io.Writer) error {
 	case err := <-errChan2:
 		return handleErr(err)
 	default:
+		if err := gstorage.RemoveContents("createdImages"); err != nil {
+			return handleErr(err)
+		}
 		return nil
 
 	}
 
 }
-
-// absPath, _ := filepath.Abs("../createdImages/" + name)
-// if err := gstorage.AddFileToZip(zipwriter, absPath); err != nil {
-// 	u.logger.Info("add file to zip", zap.String("filename", name), zap.Error(err))
-// 	errChan <- err
-// 	return
-// }
-// close(errChan1)
-// close(filenames)
-
-// select {
-// case err := <-errChan1:
-// 	return handleErr(err)
-// case err := <-errChan2:
-// 	return handleErr(err)
-// }

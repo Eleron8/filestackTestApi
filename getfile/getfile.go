@@ -11,14 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// var httpClient *http.Client
-
-// func init() {
-// 	httpClient = &http.Client{
-// 		Timeout: time.Second * 10,
-// 	}
-// }
-
 type FileHandler struct {
 	client *http.Client
 	logger *zap.Logger

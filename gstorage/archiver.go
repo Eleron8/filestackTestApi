@@ -4,16 +4,17 @@ import (
 	"archive/zip"
 	"io"
 	"os"
+	"path/filepath"
 )
 
-func ZipFile(w io.Writer, filename string) error {
-	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
-	if err := AddFileToZip(zipWriter, filename); err != nil {
-		return err
-	}
-	return nil
-}
+// func ZipFile(w io.Writer, filename string) error {
+// 	zipWriter := zip.NewWriter(w)
+// 	defer zipWriter.Close()
+// 	if err := AddFileToZip(zipWriter, filename); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 
@@ -46,4 +47,23 @@ func AddFileToZip(zipWriter *zip.Writer, filename string) error {
 		return err
 	}
 	return err
+}
+
+func RemoveContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
