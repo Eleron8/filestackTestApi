@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"time"
 
 	"sync"
 
@@ -90,7 +89,6 @@ func (u *Usecase) FileFlow(data models.TransformData, wr io.Writer) error {
 			u.logger.Info("image transform", zap.String("filename", name))
 
 		}(v)
-		time.Sleep(8 * time.Second)
 
 	}
 	wg.Wait()
