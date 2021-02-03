@@ -1,0 +1,181 @@
+{
+    "file": "https://venturebeat.com/wp-content/uploads/2020/02/animal-crossing-new-horizons.jpg?w=1200&strip=all",
+    "transforms": [
+        {
+            "type": "rotate",
+            "params": {
+                "degrees": 30.0,
+                "width": 0,
+                "height":0
+            }
+        },
+        {
+            "type": "crop",
+            "params": {
+                "degrees": 0,
+                "width": 600,
+                "height":400
+            }
+        },
+        {
+            "type": "crop",
+            "params": {
+                "degrees": 0,
+                "width": 800,
+                "height":600
+            }
+        },
+        {
+            "type": "rotate",
+            "params": {
+                "degrees": 45.0,
+                "width": 0,
+                "height":0
+            }
+        },
+        {
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "remove exif",
+            "params": {
+                "degrees": 0.0,
+                "width": 0,
+                "height":0
+            }
+        },
+	{
+            "type": "crop",
+            "params": {
+                "degrees": 0,
+                "width": 200,
+                "height":400
+            }
+        },
+	{
+            "type": "crop",
+            "params": {
+                "degrees": 0,
+                "width": 300,
+                "height":400
+            }
+        },
+	{
+            "type": "crop",
+            "params": {
+                "degrees": 0,
+                "width": 600,
+                "height":200
+            }
+        }
+    ]
+}
