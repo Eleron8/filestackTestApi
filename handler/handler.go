@@ -42,17 +42,16 @@ func (h Handler) Accept(ctx echo.Context) error {
 	if err != nil {
 		return handleErr(err)
 	}
+	defer f.Close()
 	newFile, err := os.Open("archive.zip")
 	if err != nil {
 		return handleErr(err)
 	}
 
-	// wr := ctx.Response().Writer
-
 	err = h.Usecase.FileFlow(req, f)
 	if err != nil {
 		h.logger.Info("image transformation flow failed", zap.Error(err))
-		return handleErr(err)
+		return echo.NewHTTPError(500, "Internal error")
 	}
 	// newfile, err := ioutil.ReadFile("archive.zip")
 	// if err != nil {

@@ -6,12 +6,11 @@ import (
 	"io"
 	"regexp"
 
-	"sync"
-
 	"github.com/Eleron8/filestackTestApi/gstorage"
 	"github.com/Eleron8/filestackTestApi/imageprocess"
 	"github.com/Eleron8/filestackTestApi/models"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 type FileGet interface {
@@ -43,7 +42,6 @@ func (u *Usecase) FileFlow(data models.TransformData, wr io.Writer) error {
 	handleErr := func(err error) error {
 		return fmt.Errorf("file flow file's url %s: %w", data.FileURL, err)
 	}
-	var wg = sync.WaitGroup{}
 	_, file, err := u.FileGet.GetFile(data.FileURL)
 	if err != nil {
 		u.logger.Info("get file failed", zap.Error(err))
@@ -59,51 +57,41 @@ func (u *Usecase) FileFlow(data models.TransformData, wr io.Writer) error {
 	names := reg.Split(file, 2)
 	filename := fmt.Sprintf("%s/%s", u.FolderName, names[0])
 	guard := make(chan struct{}, u.MaxGoroutines)
-	errChan1 := make(chan error)
-	errChan2 := make(chan error)
-
+	g := new(errgroup.Group)
 	zipWriter := zip.NewWriter(wr)
 	defer zipWriter.Close()
-	for _, v := range data.Transforms {
+	filenames := make([]string, len(data.Transforms))
+	for i := 0; i < len(data.Transforms); i++ {
 		guard <- struct{}{}
-		wg.Add(1)
-		go func(d models.Transform) {
-			defer func() {
-				wg.Done()
-			}()
-			name, err := imgProc.ImageTransform(d, format, filename, radius, formatPart)
+		n := i
+		g.Go(func() error {
+
+			name, err := imgProc.ImageTransform(data.Transforms[n], format, filename, radius, formatPart)
 			if err != nil {
+				u.logger.Info("image transform failed", zap.String("filename", name), zap.String("action", string(data.Transforms[n].Type)))
+				return err
 
-				errChan1 <- err
-				return
 			}
+			filenames[n] = name
 
-			u.logger.Info("add to zip file starts", zap.String("filename", name))
-			if err := gstorage.AddFileToZip(zipWriter, name); err != nil {
-				u.logger.Info("add file to zip Failed", zap.String("filename", name), zap.Error(err))
-				errChan1 <- err
-
-				return
-			}
 			<-guard
 			u.logger.Info("image transform", zap.String("filename", name))
-
-		}(v)
+			return err
+		})
 
 	}
-	wg.Wait()
-
-	select {
-	case err := <-errChan1:
+	if err := g.Wait(); err != nil {
 		return handleErr(err)
-	case err := <-errChan2:
-		return handleErr(err)
-	default:
-		if err := gstorage.RemoveContents("createdImages"); err != nil {
-			return handleErr(err)
+	}
+	for _, n := range filenames {
+		if err := gstorage.AddFileToZip(zipWriter, n); err != nil {
+			u.logger.Info("add file to zip Failed", zap.String("filename", n), zap.Error(err))
+			return err
 		}
-		return nil
-
 	}
+	if err := gstorage.RemoveContents(u.FolderName); err != nil {
+		return handleErr(err)
+	}
+	return nil
 
 }
